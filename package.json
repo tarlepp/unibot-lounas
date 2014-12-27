@@ -1,0 +1,24 @@
+{
+  "name": "unibot-lounas",
+  "version": "1.0.0",
+  "description": "Lounas plugin for UniBot, this will basically fetch just specified lunch information from couple of sites.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tarlepp/unibot-lounas.git"
+  },
+  "author": "Tarmo Leppänen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tarlepp/unibot-lounas/issues"
+  },
+  "dependencies": {
+    "unibot-helpers": "git://github.com/UniBot/unibot-helpers",
+    "cheerio": "~0.18.0",
+    "lodash": "~2.4.1",
+    "async": "~0.9.0"
+  }
+}
