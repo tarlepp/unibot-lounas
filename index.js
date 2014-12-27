@@ -80,7 +80,11 @@ module.exports = function init(options) {
                             channel.say('Oh noes, error - ' + error, from);
                         } else {
                             _.each(results, function(lunch, place) {
-                                channel.say(place + ': ' + lunch || 'Ei mitään tänään');
+                                if (_.isEmpty(lunch)) {
+                                    lunch = 'Ei mitään tänään';
+                                }
+
+                                channel.say(place + ': ' + lunch);
                             });
                         }
                     }
