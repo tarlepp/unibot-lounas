@@ -63,7 +63,7 @@ module.exports = function init(options) {
             });
         }
 
-
+        // Regex rules for plugin
         return {
             '^!lounas$': function lounas(from, matches) {
                 // Define jobs
