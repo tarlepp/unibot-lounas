@@ -20,6 +20,9 @@ var _ = require('lodash');
  * Also note that this plugin relies heavily to those websites and structure of them. So there will be times, when this
  * plugin doesn't work right.
  *
+ * @todo    Add more restaurants!
+ * @todo    See if there is more common API for lunch data fetch
+ *
  * @param  {Object} options Plugin options object, description below.
  *   db: {mongoose} the mongodb connection
  *   bot: {irc} the irc bot
@@ -38,14 +41,18 @@ module.exports = function init(options) {
          */
         function fetchShalimar(callback) {
             helpers.download('http://www.ravintolashalimar.fi/', function success(data) {
-                var $ = cheerio.load(data);
-                var dishes = [];
+                if (data == null) {
+                    callback(null, null);
+                } else {
+                    var $ = cheerio.load(data);
+                    var dishes = [];
 
-                $('table.todayLunch td.dish').each(function iterator(i, elem) {
-                    dishes.push($(this).text());
-                });
+                    $('table.todayLunch td.dish').each(function iterator(i, elem) {
+                        dishes.push($(this).text());
+                    });
 
-                callback(null, dishes.join(', '));
+                    callback(null, dishes.join(', '));
+                }
             });
         }
 
@@ -56,10 +63,14 @@ module.exports = function init(options) {
          */
         function fetchAsema(callback) {
             helpers.download('http://vanhaasemaravintola.fi/lounaslista/', function success(data) {
-                var $ = cheerio.load(data);
-                var dishes = $('div.rightcolumn p').eq(1).text().split('\n').slice(1) || [];
+                if (data == null) {
+                    callback(null, null);
+                } else {
+                    var $ = cheerio.load(data);
+                    var dishes = $('div.rightcolumn p').eq(1).text().split('\n').slice(1) || [];
 
-                callback(null, dishes.join(', '));
+                    callback(null, dishes.join(', '));
+                }
             });
         }
 
@@ -77,9 +88,9 @@ module.exports = function init(options) {
                     jobs,
                     function callback(error, results) {
                         if (error) {
-                            channel.say('Oh noes, error - ' + error, from);
+                            channel.say(from, 'Oh noes, error - ' + error);
                         } else {
-                            _.each(results, function(lunch, place) {
+                            _.each(results, function iterator(lunch, place) {
                                 if (_.isEmpty(lunch)) {
                                     lunch = 'Ei mitään tänään';
                                 }
