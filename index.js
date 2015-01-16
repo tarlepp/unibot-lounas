@@ -163,6 +163,10 @@ module.exports = function init(options) {
                         }
                     });
 
+                    if (dishes) {
+                        dishes = dishes.substr(3);
+                    }
+
                     callback(null, dishes);
                 }
             });
