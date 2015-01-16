@@ -172,20 +172,64 @@ module.exports = function init(options) {
             });
         }
 
+        function fetchAntell(callback) {
+            helpers.download('http://www.antell.fi/lounaslistat/lounaslista.html?owner=84', function success(data) {
+                if (data == null) {
+                    callback(null, null);
+                } else {
+                    var days = [
+                        'Sunnuntai',
+                        'Maanantai',
+                        'Tiistai',
+                        'Keskiviikko',
+                        'Torstai',
+                        'Perjantai',
+                        'Lauantai'
+                    ];
+
+                    var date = new Date();
+                    var $ = cheerio.load(data);
+                    var dishes = [];
+
+                    $('#lunch-content-table')
+                        .find('table td h2:contains("' + days[date.getDay()] +'")')
+                        .closest('table').find('tr:not(.space)')
+                        .each(function iterator(index) {
+                            if (index !== 0) {
+                                dishes.push($(this).find('td').eq(1).text().replace(/^\s+|\s+$/gm,''));
+                            }
+                        });
+
+                    callback(null, dishes.join(', '))
+                }
+            });
+        }
+
         // Regex rules for plugin
         return {
-            '^!lounas$': function lounas(from, matches) {
+            '^!lounas(?: (.*))?$': function lounas(from, matches) {
                 // Define jobs
                 var jobs = {
-                    'Shalimar': fetchShalimar,
-                    'Asemaravintola': fetchAsema,
-                    'Trattoria': fetchAukio,
-                    'Best': fetchBest
+                    'jyväskylä': {
+                        'Shalimar': fetchShalimar,
+                        'Asemaravintola': fetchAsema,
+                        'Trattoria': fetchAukio,
+                        'Best': fetchBest
+                    },
+                    'tampere': {
+                        'Antell': fetchAntell
+                    }
                 };
+
+                var location = 'jyväskylä';
+
+                if (matches[1] && jobs[matches[1].toLowerCase()]) {
+                    location = matches[1].toLowerCase();
+                }
 
                 // Fetch lunch data parallel
                 async.parallel(
-                    jobs,
+                    jobs[location],
                     function callback(error, results) {
                         if (error) {
                             channel.say(from, 'Oh noes, error - ' + error);
