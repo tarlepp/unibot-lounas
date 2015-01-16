@@ -195,7 +195,7 @@ module.exports = function init(options) {
                                     lunch = 'Ei mitään tänään';
                                 }
 
-                                channel.say(place + ': ' + lunch);
+                                channel.say(place + ': ' + lunch.trim());
                             });
                         }
                     }
