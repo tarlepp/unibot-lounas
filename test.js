@@ -31,7 +31,8 @@ var from = 'tarlepp';
 var messages = [
     '!lou',
     '!lounas',
-    '!lounas tampere'
+    '!lounas tampere',
+    '!lounas hevonperse'
 ];
 
 // Iterate each message (test case)

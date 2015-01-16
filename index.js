@@ -14,8 +14,14 @@ var _ = require('lodash');
  * This plugin fetches lunch information for today from specified restaurants. Currently plugin supports following
  * restaurants:
  *
+ * Jyväskylä:
  *  - Shalimar (http://www.ravintolashalimar.fi/)
  *  - Jyväskylän vanha asemaravintola (http://vanhaasemaravintola.fi/)
+ *  - Trattorian Aukio (https://www.raflaamo.fi/jyvaskyla/trattoria-aukio)
+ *  - Pizzeria Best (http://www.pizzeriabest.fi/)
+ *
+ * Tampere
+ *  - Antell (http://www.antell.fi/ravintolat/ravintolahaku/ravintolat.html?paikka=Tampere)
  *
  * Also note that this plugin relies heavily to those websites and structure of them. So there will be times, when this
  * plugin doesn't work right.
@@ -172,6 +178,11 @@ module.exports = function init(options) {
             });
         }
 
+        /**
+         * Helper function to fetch lunch data for Antell (Tampere location)
+         *
+         * @param {Function}    callback    Callback function
+         */
         function fetchAntell(callback) {
             helpers.download('http://www.antell.fi/lounaslistat/lounaslista.html?owner=84', function success(data) {
                 if (data == null) {
@@ -200,7 +211,7 @@ module.exports = function init(options) {
                             }
                         });
 
-                    callback(null, dishes.join(', '))
+                    callback(null, _.compact(dishes).join(', '))
                 }
             });
         }
@@ -208,7 +219,7 @@ module.exports = function init(options) {
         // Regex rules for plugin
         return {
             '^!lounas(?: (.*))?$': function lounas(from, matches) {
-                // Define jobs
+                // Define jobs per location
                 var jobs = {
                     'jyväskylä': {
                         'Shalimar': fetchShalimar,
@@ -221,29 +232,38 @@ module.exports = function init(options) {
                     }
                 };
 
+                // Default location
                 var location = 'jyväskylä';
 
-                if (matches[1] && jobs[matches[1].toLowerCase()]) {
-                    location = matches[1].toLowerCase();
+                if (matches[1]) {
+                    if (jobs[matches[1].toLowerCase()]) {
+                        location = matches[1].toLowerCase();
+                    } else {
+                        location = false;
+
+                        channel.say(from + ': voi voi, ei tukea paikalle \'' + matches[1] + '\'');
+                    }
                 }
 
-                // Fetch lunch data parallel
-                async.parallel(
-                    jobs[location],
-                    function callback(error, results) {
-                        if (error) {
-                            channel.say(from, 'Oh noes, error - ' + error);
-                        } else {
-                            _.each(results, function iterator(lunch, place) {
-                                if (_.isEmpty(lunch)) {
-                                    lunch = 'Ei mitään tänään';
-                                }
+                if (location !== false) {
+                    // Fetch lunch data parallel
+                    async.parallel(
+                        jobs[location],
+                        function callback(error, results) {
+                            if (error) {
+                                channel.say(from, 'Oh noes, error - ' + error);
+                            } else {
+                                _.each(results, function iterator(lunch, place) {
+                                    if (_.isEmpty(lunch)) {
+                                        lunch = 'Ei mitään tänään';
+                                    }
 
-                                channel.say(place + ': ' + lunch.trim());
-                            });
+                                    channel.say(place + ': ' + lunch.trim());
+                                });
+                            }
                         }
-                    }
-                );
+                    );
+                }
             }
         };
     };
