@@ -3,11 +3,10 @@
  *
  * @type {exports}
  */
-var helpers = require('unibot-helpers');
+var request = require("request");
 var cheerio = require('cheerio');
 var async = require('async');
 var _ = require('lodash');
-var request = require("request");
 
 /**
  * Lounas plugin for UniBot.
@@ -21,14 +20,17 @@ var request = require("request");
  *  - Trattorian Aukio (https://www.raflaamo.fi/jyvaskyla/trattoria-aukio)
  *  - Pizzeria Best (http://www.pizzeriabest.fi/)
  *
- * Tampere
- *  - Antell (http://www.antell.fi/ravintolat/ravintolahaku/ravintolat.html?paikka=Tampere)
+ * Tampere:
+ *  - Antell (http://www.antell.fi/lounaslistat/lounaslista.html?owner=84)
+ *  - Kirveli (http://lounaat.info/lounas/kirveli/tampere)
+ *  - Coriander (http://www.coriander-restaurant.com/)
  *
  * Also note that this plugin relies heavily to those websites and structure of them. So there will be times, when this
  * plugin doesn't work right.
  *
  * @todo    Add more restaurants!
  * @todo    See if there is more common API for lunch data fetch
+ * @todo    Separate each restaurant to own modules
  *
  * @param  {Object} options Plugin options object, description below.
  *   db: {mongoose} the mongodb connection
@@ -39,32 +41,53 @@ var request = require("request");
  * @return  {Function}  Init function to access shared resources
  */
 module.exports = function init(options) {
-    String.prototype.capitalize = function(){
-        return this.replace( /(^|\s)([a-z])/g , function(m,p1,p2){ return p1+p2.toUpperCase(); } );
+    String.prototype.capitalize = function() {
+        return this.replace(/(^|\s)([a-z])/g, function(m, p1, p2) { return p1 + p2.toUpperCase(); } );
     };
 
     // Actual plugin implementation.
     return function plugin(channel) {
+        /**
+         * Helper function to fetch data from specified URL.
+         *
+         * @param   {String}    url         URL to fetch
+         * @param   {Function}  callback    Callback function
+         */
+        function fetchData(url, callback) {
+            request({
+                uri: url,
+                method: 'GET',
+                timeout: 10000,
+                followRedirect: true,
+                maxRedirects: 10,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.110 Safari/537.36'
+                }
+            }, callback);
+        }
+
         /**
          * Helper function to fetch lunch data from Shalimar website.
          *
          * @param {Function}    callback    Callback function
          */
         function fetchShalimar(callback) {
-            helpers.download('http://www.ravintolashalimar.fi/', function success(data) {
-                if (data == null) {
-                    callback(null, null);
+            var parser = function parser(error, response, body) {
+                if (error) {
+                    callback(error, null);
                 } else {
-                    var $ = cheerio.load(data);
+                    var $ = cheerio.load(body);
                     var dishes = [];
 
-                    $('table.todayLunch td.dish').each(function iterator(i, elem) {
+                    $('table.todayLunch td.dish').each(function iterator() {
                         dishes.push($(this).text());
                     });
 
-                    callback(null, dishes.join(', '));
+                    callback(null, _.compact(dishes).join(', '))
                 }
-            });
+            };
+
+            fetchData('http://www.ravintolashalimar.fi/', parser);
         }
 
         /**
@@ -73,9 +96,9 @@ module.exports = function init(options) {
          * @param {Function}    callback    Callback function
          */
         function fetchAsema(callback) {
-            helpers.download('http://vanhaasemaravintola.fi/lounaslista/', function success(data) {
-                if (data == null) {
-                    callback(null, null);
+            var parser = function parser(error, response, body) {
+                if (error) {
+                    callback(error, null);
                 } else {
                     var days = [
                         'Sunnuntai',
@@ -100,12 +123,14 @@ module.exports = function init(options) {
                     }
 
                     var dayString = days[date.getDay()] + ' ' + day + '.' + month;
-                    var $ = cheerio.load(data);
+                    var $ = cheerio.load(body);
                     var dishes = $('div.content').find('h2:contains("' + dayString + '")').next().text().split('\n');
 
-                    callback(null, dishes.join(', '));
+                    callback(null, _.compact(dishes).join(', '))
                 }
-            });
+            };
+
+            fetchData('http://vanhaasemaravintola.fi/lounaslista/', parser);
         }
 
         /**
@@ -114,11 +139,11 @@ module.exports = function init(options) {
          * @param {Function}    callback    Callback function
          */
         function fetchAukio(callback) {
-            helpers.download('https://www.raflaamo.fi/fi/jyvaskyla/trattoria-aukio', function success(data) {
-                if (data == null) {
-                    callback(null, null);
+            var parser = function parser(error, response, body) {
+                if (error) {
+                    callback(error, null);
                 } else {
-                    var $ = cheerio.load(data);
+                    var $ = cheerio.load(body);
                     var dishes = [];
                     var currentDayElement = $('#days-chooser').find('div.day-option.active');
                     var currentDate = currentDayElement.data('date');
@@ -136,9 +161,11 @@ module.exports = function init(options) {
                         dishes.pop();
                     }
 
-                    callback(null, dishes.join(', '));
+                    callback(null, _.compact(dishes).join(', '))
                 }
-            });
+            };
+
+            fetchData('https://www.raflaamo.fi/fi/jyvaskyla/trattoria-aukio', parser);
         }
 
         /**
@@ -147,11 +174,11 @@ module.exports = function init(options) {
          * @param {Function}    callback    Callback function
          */
         function fetchBest(callback) {
-            helpers.download('http://www.pizzeriabest.fi/onlinetilaus/index.php?main_page=page&id=1', function success(data) {
-                if (data == null) {
-                    callback(null, null);
+            var parser = function parser(error, response, body) {
+                if (error) {
+                    callback(error, null);
                 } else {
-                    var $ = cheerio.load(data);
+                    var $ = cheerio.load(body);
                     var days = [
                         'Su',
                         'Ma',
@@ -175,12 +202,14 @@ module.exports = function init(options) {
                     });
 
                     if (dishes) {
-                        dishes = dishes.substr(3);
+                        dishes = dishes.substr(3).trim();
                     }
 
                     callback(null, dishes);
                 }
-            });
+            };
+
+            fetchData('http://www.pizzeriabest.fi/onlinetilaus/index.php?main_page=page&id=1', parser);
         }
 
         /**
@@ -189,9 +218,9 @@ module.exports = function init(options) {
          * @param {Function}    callback    Callback function
          */
         function fetchAntell(callback) {
-            helpers.download('http://www.antell.fi/lounaslistat/lounaslista.html?owner=84', function success(data) {
-                if (data == null) {
-                    callback(null, null);
+            var parser = function parser(error, response, body) {
+                if (error) {
+                    callback(error, null);
                 } else {
                     var days = [
                         'Sunnuntai',
@@ -204,36 +233,35 @@ module.exports = function init(options) {
                     ];
 
                     var date = new Date();
-                    var $ = cheerio.load(data);
+                    var $ = cheerio.load(body);
                     var dishes = [];
 
                     $('#lunch-content-table')
                         .find('table td h2:contains("' + days[date.getDay()] +'")')
-                        .closest('table').find('tr:not(.space)')
+                        .closest('table')
+                        .find('tr:not(.space)')
                         .each(function iterator(index) {
                             if (index !== 0) {
-                                dishes.push($(this).find('td').eq(1).text().replace(/^\s+|\s+$/gm,''));
+                                dishes.push($(this).find('td').eq(1).text().replace(/^\s+|\s+$/gm, ''));
                             }
                         });
 
                     callback(null, _.compact(dishes).join(', '))
                 }
-            });
+            };
+
+            fetchData('http://www.antell.fi/lounaslistat/lounaslista.html?owner=84', parser);
         }
 
+        /**
+         * Helper function to fetch lunch data for Kirveli (Tampere).
+         *
+         * @param   {Function}  callback    Callback function
+         */
         function fetchKirveli(callback) {
-            request({
-                uri: "http://lounaat.info/lounas/kirveli/tampere",
-                method: "GET",
-                timeout: 10000,
-                followRedirect: true,
-                maxRedirects: 10,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.110 Safari/537.36'
-                }
-            }, function(error, response, body) {
+            var parser = function parser(error, response, body) {
                 if (error) {
-                    return callback(error, null);
+                    callback(error, null);
                 } else {
                     var days = [
                         'Sunnuntaina',
@@ -259,22 +287,20 @@ module.exports = function init(options) {
 
                     callback(null, _.compact(dishes).join(', '));
                 }
-            });
+            };
+
+            fetchData('http://lounaat.info/lounas/kirveli/tampere', parser);
         }
 
+        /**
+         * Helper function to fetch lunch data for Coriander (Tampere).
+         *
+         * @param   {Function}  callback    Callback function
+         */
         function fetchCoriander(callback) {
-            request({
-                uri: "http://www.coriander-restaurant.com/",
-                method: "GET",
-                timeout: 10000,
-                followRedirect: true,
-                maxRedirects: 10,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.110 Safari/537.36'
-                }
-            }, function(error, response, body) {
+            var parser = function parser(error, response, body) {
                 if (error) {
-                    return callback(error, null);
+                    callback(error, null);
                 } else {
                     var days = [
                         'tab-sunday',
@@ -300,7 +326,9 @@ module.exports = function init(options) {
 
                     callback(null, _.compact(dishes).join(', '));
                 }
-            });
+            };
+
+            fetchData('http://www.coriander-restaurant.com/', parser);
         }
 
         // Regex rules for plugin
