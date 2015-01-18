@@ -1,15 +1,15 @@
 # unibot-lounas
 Lounas plugin for UniBot, this will basically fetch just specified lunch information from couple of sites. Currently
-plugin fetches lunch information from following sites:
+plugin supports following locations and restaurants:
 
-**Jyväskylä**
+**Jyväskylä** ```!lounas```
 
 * Shalimar (http://www.ravintolashalimar.fi/)
 * Jyväskylän vanha asemaravintola (http://vanhaasemaravintola.fi/)
 * Trattorian Aukio (https://www.raflaamo.fi/jyvaskyla/trattoria-aukio)
 * Pizzeria Best (http://www.pizzeriabest.fi/)
  
-**Tampere**
+**Tampere** ```!lounas tampere```
 
 * Antell (http://www.antell.fi/lounaslistat/lounaslista.html?owner=84)
 * Kirveli (http://lounaat.info/lounas/kirveli/tampere)
