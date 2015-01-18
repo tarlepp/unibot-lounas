@@ -7,6 +7,7 @@ var helpers = require('unibot-helpers');
 var cheerio = require('cheerio');
 var async = require('async');
 var _ = require('lodash');
+var request = require("request");
 
 /**
  * Lounas plugin for UniBot.
@@ -38,6 +39,10 @@ var _ = require('lodash');
  * @return  {Function}  Init function to access shared resources
  */
 module.exports = function init(options) {
+    String.prototype.capitalize = function(){
+        return this.replace( /(^|\s)([a-z])/g , function(m,p1,p2){ return p1+p2.toUpperCase(); } );
+    };
+
     // Actual plugin implementation.
     return function plugin(channel) {
         /**
@@ -216,6 +221,88 @@ module.exports = function init(options) {
             });
         }
 
+        function fetchKirveli(callback) {
+            request({
+                uri: "http://lounaat.info/lounas/kirveli/tampere",
+                method: "GET",
+                timeout: 10000,
+                followRedirect: true,
+                maxRedirects: 10,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.110 Safari/537.36'
+                }
+            }, function(error, response, body) {
+                if (error) {
+                    return callback(error, null);
+                } else {
+                    var days = [
+                        'Sunnuntaina',
+                        'Maanantaina',
+                        'Tiistaina',
+                        'Keskiviikkona',
+                        'Torstaina',
+                        'Perjantaina',
+                        'Lauantaina'
+                    ];
+
+                    var date = new Date();
+                    var $ = cheerio.load(body);
+                    var dishes = [];
+
+                    $('#menu')
+                        .find('h3:contains("' + days[date.getDay()] + '")')
+                        .closest('section')
+                        .find('ul li')
+                        .each(function iterator() {
+                            dishes.push($(this).find('p.dish').text().replace(/\s+/g, ' ').trim());
+                        });
+
+                    callback(null, _.compact(dishes).join(', '));
+                }
+            });
+        }
+
+        function fetchCoriander(callback) {
+            request({
+                uri: "http://www.coriander-restaurant.com/",
+                method: "GET",
+                timeout: 10000,
+                followRedirect: true,
+                maxRedirects: 10,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.110 Safari/537.36'
+                }
+            }, function(error, response, body) {
+                if (error) {
+                    return callback(error, null);
+                } else {
+                    var days = [
+                        'tab-sunday',
+                        'tab-monday',
+                        'tab-tuesday',
+                        'tab-wednesday',
+                        'tab-thursday',
+                        'tab-friday',
+                        'tab-saturday'
+                    ];
+
+                    var date = new Date();
+                    var $ = cheerio.load(body);
+                    var dishes = [];
+
+                    $('#' + days[date.getDay()])
+                        .find('h5')
+                        .each(function iterator() {
+                            var dish = $(this).text().replace(/\s+/g, ' ').trim().replace(/^([0-9]\.)/, '').trim();
+
+                            dishes.push(dish.toLowerCase().capitalize());
+                        });
+
+                    callback(null, _.compact(dishes).join(', '));
+                }
+            });
+        }
+
         // Regex rules for plugin
         return {
             '^!lounas(?: (.*))?$': function lounas(from, matches) {
@@ -228,7 +315,9 @@ module.exports = function init(options) {
                         'Best': fetchBest
                     },
                     'tampere': {
-                        'Antell': fetchAntell
+                        'Antell': fetchAntell,
+                        'Kirveli': fetchKirveli,
+                        'Coriander': fetchCoriander
                     }
                 };
 
