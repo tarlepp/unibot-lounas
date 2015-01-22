@@ -100,16 +100,6 @@ module.exports = function init(options) {
                 if (error) {
                     callback(error, null);
                 } else {
-                    var days = [
-                        'Sunnuntai',
-                        'Maanantai',
-                        'Tiistai',
-                        'Keskiviikko',
-                        'Torstai',
-                        'Perjantai',
-                        'Lauantai'
-                    ];
-
                     var date = new Date();
                     var day = date.getDate();
                     var month = date.getMonth() + 1;
@@ -122,9 +112,11 @@ module.exports = function init(options) {
                         month = '0' + month;
                     }
 
-                    var dayString = days[date.getDay()] + ' ' + day + '.' + month;
                     var $ = cheerio.load(body);
-                    var dishes = $('div.content').find('h2:contains("' + dayString + '")').next().text().split('\n');
+                    var dishes = $('div.content').find('p:contains("' + day + '.' + month + '")').text().split('\n');
+
+                    // Remove current date
+                    dishes.shift();
 
                     callback(null, _.compact(dishes).join(', '))
                 }
