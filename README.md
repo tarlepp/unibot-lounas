@@ -8,6 +8,7 @@ plugin supports following locations and restaurants:
 * Jyväskylän vanha asemaravintola (http://vanhaasemaravintola.fi/)
 * Trattorian Aukio (https://www.raflaamo.fi/jyvaskyla/trattoria-aukio)
 * Pizzeria Best (http://www.pizzeriabest.fi/)
+* Dynamo (http://www.sodexo.fi/jamk-dynamo)
  
 **Tampere** ```!lounas tampere```
 
