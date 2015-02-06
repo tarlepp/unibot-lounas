@@ -323,6 +323,36 @@ module.exports = function init(options) {
             fetchData('http://www.coriander-restaurant.com/', parser);
         }
 
+        /**
+         * Helper function to fetch lunch data for Dynamo (Jyväskylä).
+         *
+         * @param   {Function}  callback    Callback function
+         */
+        function fetchDynamo(callback) {
+            var parser = function parser(error, response, body) {
+                if (error) {
+                    callback(error, null);
+                } else {
+                    var $ = cheerio.load(body);
+                    var dishes = [];
+
+                    $('.lunch_desc').each(function() {
+                        var dishElement = $(this);
+                        var dish = [];
+
+                        dish.push(dishElement.find('span.fi.title').text());
+                        dish.push(dishElement.find('span.fi.desc').text());
+
+                        dishes.push(_.compact(dish).join(' ja '));
+                    });
+
+                    callback(null, _.compact(dishes).join(', '));
+                }
+            };
+
+            fetchData('http://www.sodexo.fi/jamk-dynamo', parser);
+        }
+
         // Regex rules for plugin
         return {
             '^!lounas(?: (.*))?$': function lounas(from, matches) {
@@ -332,7 +362,8 @@ module.exports = function init(options) {
                         'Shalimar': fetchShalimar,
                         'Asemaravintola': fetchAsema,
                         'Trattoria': fetchAukio,
-                        'Best': fetchBest
+                        'Best': fetchBest,
+                        'Dynamo': fetchDynamo
                     },
                     'tampere': {
                         'Antell': fetchAntell,
