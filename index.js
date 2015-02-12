@@ -100,23 +100,8 @@ module.exports = function init(options) {
                 if (error) {
                     callback(error, null);
                 } else {
-                    var date = new Date();
-                    var day = date.getDate();
-                    var month = date.getMonth() + 1;
-
-                    if (day < 10) {
-                        day = '0' + day;
-                    }
-
-                    if (month < 10) {
-                        month = '0' + month;
-                    }
-
                     var $ = cheerio.load(body);
-                    var dishes = $('div.content').find('p:contains("' + day + '.' + month + '")').text().split('\n');
-
-                    // Remove current date
-                    dishes.shift();
+                    var dishes = $('div.rightcolumn').find('p').eq(1).text().split('\n');
 
                     callback(null, _.compact(dishes).join(', '))
                 }
